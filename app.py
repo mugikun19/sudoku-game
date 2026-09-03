@@ -1,10 +1,9 @@
 """
-Sudoku Game Application
-Streamlit-based Sudoku game dengan multiple difficulty levels
+Sudoku Game Application - Interactive Version
+Streamlit-based Sudoku game dengan clean grid UI seperti Sudoku konvensional
 """
 
 import streamlit as st
-import numpy as np
 from sudoku_generator import SudokuGenerator
 from sudoku_validator import SudokuValidator
 
@@ -20,7 +19,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
+# Custom CSS untuk layout dan styling yang clean
 st.markdown("""
     <style>
     .main { padding: 2rem; }
@@ -32,12 +31,159 @@ st.markdown("""
     .game-title {
         text-align: center;
         color: #1f77b4;
+        margin-bottom: 2rem;
     }
-    .stats-box {
-        background-color: #f0f2f6;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        margin: 0.5rem 0;
+    
+    /* Sudoku Grid Styling - CLEAN PROFESSIONAL VERSION */
+    .sudoku-grid-wrapper {
+        display: flex;
+        justify-content: center;
+        margin: 2rem 0;
+    }
+    
+    .sudoku-grid {
+        display: inline-grid;
+        grid-template-columns: repeat(9, 50px);
+        grid-template-rows: repeat(9, 50px);
+        gap: 0;
+        background-color: #000;
+        padding: 3px;
+        border: 3px solid #000;
+        box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    
+    .sudoku-cell {
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #fff;
+        border: 1px solid #999;
+        font-size: 22px;
+        font-weight: 600;
+        cursor: pointer;
+        user-select: none;
+        transition: background-color 0.15s ease;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .sudoku-cell:hover {
+        background-color: #f5f5f5;
+    }
+    
+    .sudoku-cell.selected {
+        background-color: #cce5ff;
+        box-shadow: inset 0 0 0 2px #1f77b4;
+    }
+    
+    .sudoku-cell.highlighted {
+        background-color: #e8f4f8;
+    }
+    
+    /* Thick borders untuk 3x3 boxes */
+    .sudoku-cell:nth-child(3n) {
+        border-right: 3px solid #000;
+    }
+    
+    .sudoku-cell:nth-child(9n) {
+        border-right: 1px solid #999;
+    }
+    
+    /* Rows 9, 18, 27, dst */
+    .sudoku-cell:nth-child(n+1):nth-child(-n+9):nth-child(9n+1) { }
+    
+    .sudoku-row-3 .sudoku-cell,
+    .sudoku-row-6 .sudoku-cell {
+        border-bottom: 3px solid #000;
+    }
+    
+    .input-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 999;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .input-overlay.active {
+        display: flex;
+    }
+    
+    .input-modal {
+        background: white;
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        text-align: center;
+        min-width: 300px;
+    }
+    
+    .input-modal h3 {
+        margin: 0 0 1.5rem 0;
+        color: #333;
+    }
+    
+    .input-modal input {
+        width: 80px;
+        height: 50px;
+        font-size: 32px;
+        text-align: center;
+        border: 2px solid #1f77b4;
+        border-radius: 5px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .input-modal-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+    }
+    
+    .input-modal-buttons button {
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-submit {
+        background: #1f77b4;
+        color: white;
+    }
+    
+    .btn-submit:hover {
+        background: #1563a8;
+    }
+    
+    .btn-delete {
+        background: #ff6b6b;
+        color: white;
+    }
+    
+    .btn-delete:hover {
+        background: #ee5a52;
+    }
+    
+    .btn-cancel {
+        background: #ccc;
+        color: #333;
+    }
+    
+    .btn-cancel:hover {
+        background: #bbb;
+    }
+    
+    .cells-container {
+        display: none;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -116,104 +262,141 @@ def get_hint():
         return None, "No empty cells left!"
 
 
-def render_grid_with_inputs():
-    """Render Sudoku grid with input fields"""
+def render_interactive_grid():
+    """Render interactive Sudoku grid dengan HTML + JavaScript yang smooth"""
     if st.session_state.current_grid is None:
         return
     
     size = 9
+    grid_data = st.session_state.current_grid
+    original_puzzle = st.session_state.original_puzzle
     
-    # Create a grid of 9x9 cells
-    grid_container = st.container()
+    # Container untuk update input (hidden)
+    input_container = st.container()
     
-    for row in range(size):
-        cols = st.columns(9, gap="small")
+    with input_container:
+        st.markdown(f'<div class="cells-container" id="cellsContainer"></div>', 
+                   unsafe_allow_html=True)
         
-        for col in range(size):
-            with cols[col]:
-                is_original = st.session_state.original_puzzle[row][col] != 0
-                value = st.session_state.current_grid[row][col]
-                
-                if is_original:
-                    # Display original clue as disabled input
-                    st.text_input(
-                        label="cell",
-                        value=str(value),
-                        disabled=True,
-                        key=f"cell_{row}_{col}",
-                        label_visibility="collapsed"
-                    )
-                else:
-                    # Editable input field
-                    new_value = st.text_input(
-                        label="cell",
-                        value=str(value) if value != 0 else "",
-                        max_chars=1,
-                        key=f"cell_{row}_{col}",
-                        label_visibility="collapsed"
-                    )
+        # Create hidden inputs for all cells
+        for row in range(size):
+            cols = st.columns(9, gap="small")
+            for col in range(size):
+                with cols[col]:
+                    is_original = original_puzzle[row][col] != 0
+                    value = grid_data[row][col]
                     
-                    if new_value:
-                        try:
-                            num = int(new_value)
-                            if 1 <= num <= 9:
-                                st.session_state.current_grid[row][col] = num
-                            else:
-                                st.error("Enter 1-9")
-                        except ValueError:
-                            st.error("Invalid")
-                    elif new_value == "":
-                        st.session_state.current_grid[row][col] = 0
-
-
-def render_grid_display():
-    """Render Sudoku grid as visual display"""
-    if st.session_state.current_grid is None:
-        return
+                    # Input tersembunyi untuk capture perubahan
+                    if not is_original:
+                        st.text_input(
+                            label="cell",
+                            value=str(value) if value != 0 else "",
+                            max_chars=1,
+                            key=f"cell_{row}_{col}",
+                            label_visibility="collapsed",
+                            disabled=False,
+                            type="password"
+                        )
     
-    size = 9
-    html_grid = """
-    <div style="
-        display: grid;
-        grid-template-columns: repeat(9, 1fr);
-        grid-gap: 1px;
-        background-color: #333;
-        padding: 5px;
-        max-width: 450px;
-        margin: auto;
-    ">
-    """
+    # Build grid HTML
+    grid_html = '<div class="sudoku-grid-wrapper"><div class="sudoku-grid" id="sudokuGrid">'
     
     for row in range(size):
         for col in range(size):
-            value = st.session_state.current_grid[row][col]
-            is_original = st.session_state.original_puzzle[row][col] != 0
-            
-            # Highlight original clues
-            bg_color = "#e3f2fd" if is_original else "#fff"
-            font_weight = "bold" if is_original else "normal"
+            value = grid_data[row][col]
+            is_original = original_puzzle[row][col] != 0
+            cell_class = "sudoku-cell"
             
             cell_value = str(value) if value != 0 else ""
             
-            html_grid += f"""
-            <div style="
-                background-color: {bg_color};
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                width: 50px;
-                height: 50px;
-                font-weight: {font_weight};
-                font-size: 18px;
-                border-right: 2px solid #333 if {col % 3 == 2} else 1px solid #ccc;
-                border-bottom: 2px solid #333 if {row % 3 == 2} else 1px solid #ccc;
-            ">
-                {cell_value}
-            </div>
-            """
+            grid_html += f'''
+                <div class="{cell_class}" 
+                     data-row="{row}" 
+                     data-col="{col}" 
+                     data-clue="{'true' if is_original else 'false'}"
+                     onclick="handleCellClick(this, {row}, {col}, {'true' if is_original else 'false'})"
+                     id="cell-{row}-{col}">
+                    {cell_value}
+                </div>
+            '''
     
-    html_grid += "</div>"
-    st.markdown(html_grid, unsafe_allow_html=True)
+    grid_html += '</div></div>'
+    
+    # JavaScript untuk interaksi yang smooth
+    grid_html += '''
+    <script>
+    function handleCellClick(element, row, col, isClue) {
+        if (isClue === 'true') return;
+        
+        // Clear previous selection
+        document.querySelectorAll(".sudoku-cell").forEach(cell => {
+            cell.classList.remove("selected", "highlighted");
+        });
+        
+        element.classList.add("selected");
+        highlightRelated(row, col);
+        
+        // Get current value
+        const currentValue = element.textContent.trim();
+        
+        // Show input prompt
+        const input = prompt("Masukkan angka (1-9) atau delete untuk kosongkan:", currentValue);
+        
+        if (input !== null) {
+            if (input === "" || input.toLowerCase() === "delete" || input === "0") {
+                element.textContent = "";
+                updateCellInput(row, col, "");
+            } else if (/^[1-9]$/.test(input)) {
+                element.textContent = input;
+                updateCellInput(row, col, input);
+            } else {
+                alert("Hanya masukkan angka 1-9");
+            }
+        }
+        
+        // Clear highlight
+        document.querySelectorAll(".sudoku-cell").forEach(cell => {
+            cell.classList.remove("selected", "highlighted");
+        });
+    }
+    
+    function highlightRelated(row, col) {
+        const cells = document.querySelectorAll(".sudoku-cell");
+        
+        cells.forEach(cell => {
+            const cellRow = parseInt(cell.dataset.row);
+            const cellCol = parseInt(cell.dataset.col);
+            
+            // Highlight row, column, dan 3x3 box
+            if (cellRow === row || cellCol === col) {
+                cell.classList.add("highlighted");
+            }
+            
+            // Highlight 3x3 box
+            const boxRow = Math.floor(row / 3);
+            const boxCol = Math.floor(col / 3);
+            const cellBoxRow = Math.floor(cellRow / 3);
+            const cellBoxCol = Math.floor(cellCol / 3);
+            
+            if (boxRow === cellBoxRow && boxCol === cellBoxCol) {
+                cell.classList.add("highlighted");
+            }
+        });
+    }
+    
+    function updateCellInput(row, col, value) {
+        const inputKey = `cell_${row}_${col}`;
+        const inputElement = document.querySelector(`input[value="${value}"][data-testid="textinput-${inputKey}"]`);
+        if (inputElement) {
+            inputElement.value = value;
+        }
+        // Trigger Streamlit state update
+        window.sudokuUpdated = true;
+    }
+    </script>
+    '''
+    
+    st.markdown(grid_html, unsafe_allow_html=True)
 
 
 # ============================================================================
@@ -288,10 +471,14 @@ def main():
             - Fill each column with numbers 1-9 (no repeats)
             - Fill each 3×3 box with numbers 1-9 (no repeats)
             
+            ### How to Use
+            - **Click** pada kotak kosong untuk memasukkan angka
+            - **Type** angka 1-9, atau kosongkan untuk delete
+            - **Blue highlight** menunjukkan row, column, dan box yang terkait
+            
             ### Tips
-            - Numbers in the blue-highlighted cells are given clues
-            - Use the hint button if you get stuck (max 5 hints)
-            - Check your solution to see if it's correct
+            - Use the hint button jika stuck (max 5 hints)
+            - Check your solution untuk verify
             
             ### Difficulty Levels
             - **Easy**: 50 starting numbers
@@ -305,7 +492,7 @@ def main():
         
         with col1:
             st.subheader("Game Board")
-            render_grid_with_inputs()
+            render_interactive_grid()
         
         with col2:
             st.subheader("Actions")
