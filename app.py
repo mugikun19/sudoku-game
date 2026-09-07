@@ -41,6 +41,14 @@ def initialize_session_state():
         st.session_state.game_won = False
     if "selected_cell" not in st.session_state:
         st.session_state.selected_cell = None
+    if "start_time" not in st.session_state:
+        st.session_state.start_time = None
+    if "elapsed_time" not in st.session_state:
+        st.session_state.elapsed_time = 0
+    if "completion_time" not in st.session_state:
+        st.session_state.completion_time = None
+    if "difficulty_level" not in st.session_state:
+        st.session_state.difficulty_level = "medium"
 
 
 initialize_session_state()
@@ -51,6 +59,8 @@ initialize_session_state()
 
 def generate_new_puzzle(difficulty: str, size: int = 9):
     """Generate a new Sudoku puzzle"""
+    import time
+    
     generator = SudokuGenerator(size=size, box_size=3)
     puzzle, solution = generator.generate_puzzle(difficulty)
     
@@ -62,6 +72,10 @@ def generate_new_puzzle(difficulty: str, size: int = 9):
     st.session_state.game_started = True
     st.session_state.game_won = False
     st.session_state.selected_cell = None
+    st.session_state.start_time = time.time()
+    st.session_state.elapsed_time = 0
+    st.session_state.completion_time = None
+    st.session_state.difficulty_level = difficulty
 
 
 def reset_puzzle():
@@ -77,7 +91,29 @@ def check_solution():
     """Check if current grid matches solution"""
     validator = SudokuValidator()
     result = validator.compare_with_solution(st.session_state.current_grid, st.session_state.solution)
+    
+    # Track completion time if solved
+    if result["is_complete"] and result["is_correct"]:
+        if st.session_state.completion_time is None:
+            st.session_state.completion_time = get_elapsed_time()
+        st.session_state.game_won = True
+    
     return result
+
+
+def format_time(seconds):
+    """Format seconds to MM:SS format"""
+    minutes = int(seconds) // 60
+    secs = int(seconds) % 60
+    return f"{minutes:02d}:{secs:02d}"
+
+
+def get_elapsed_time():
+    """Get current elapsed time"""
+    import time
+    if st.session_state.start_time is None:
+        return 0
+    return time.time() - st.session_state.start_time
 
 
 def get_hint():
@@ -95,6 +131,172 @@ def get_hint():
         return (row, col, value), "Hint provided!"
     else:
         return None, "No empty cells left!"
+
+
+def render_completion_screen():
+    """Render completion/results screen like sudoku.com"""
+    completion_time = st.session_state.completion_time or 0
+    difficulty_emoji = {"easy": "🟢", "medium": "🟡", "hard": "🔴"}
+    difficulty_text = {"easy": "Easy", "medium": "Medium", "hard": "Hard"}
+    
+    st.markdown("""
+        <style>
+        .completion-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .completion-card {
+            background: white;
+            border-radius: 12px;
+            padding: 40px 30px;
+            text-align: center;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .completion-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1f77b4;
+            margin-bottom: 10px;
+        }
+        
+        .completion-subtitle {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .stat-item {
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1f77b4;
+        }
+        
+        .completion-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        
+        .btn-large {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #1f77b4;
+            color: white;
+            flex: 1;
+        }
+        
+        .btn-primary:hover {
+            background: #1563a8;
+        }
+        
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+            flex: 1;
+        }
+        
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        st.markdown(f"""
+            <div class="completion-card">
+                <div class="completion-title">🎉 Puzzle Solved!</div>
+                <div class="completion-subtitle">Congratulations!</div>
+                
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">Time</div>
+                        <div class="stat-value">{format_time(completion_time)}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Difficulty</div>
+                        <div class="stat-value">{difficulty_emoji.get(st.session_state.difficulty_level, '❓')} {difficulty_text.get(st.session_state.difficulty_level, 'Unknown')}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Hints Used</div>
+                        <div class="stat-value">{st.session_state.hints_used}/5</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Mistakes</div>
+                        <div class="stat-value">0/3</div>
+                    </div>
+                </div>
+                
+                <div class="completion-buttons">
+        """, unsafe_allow_html=True)
+        
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            if st.button("🔄 New Game", key="new_game_completion", use_container_width=True):
+                reset_completion_state()
+                st.rerun()
+        
+        with col_btn2:
+            if st.button("📊 Stats", key="stats_btn", use_container_width=True):
+                st.info("Stats feature coming soon!")
+        
+        st.markdown("</div></div>", unsafe_allow_html=True)
+
+
+def reset_completion_state():
+    """Reset state after completion to start new game"""
+    st.session_state.game_started = False
+    st.session_state.game_won = False
+    st.session_state.puzzle = None
+    st.session_state.current_grid = None
+    st.session_state.solution = None
+    st.session_state.original_puzzle = None
+    st.session_state.hints_used = 0
+    st.session_state.start_time = None
+    st.session_state.elapsed_time = 0
+    st.session_state.completion_time = None
 
 
 def render_sudoku_grid():
@@ -428,6 +630,10 @@ def main():
         if st.session_state.game_started:
             st.subheader("📊 Game Info")
             
+            # Show timer
+            elapsed = get_elapsed_time()
+            st.metric("⏱️ Time", format_time(elapsed))
+            
             validator = SudokuValidator()
             progress = validator.get_progress(
                 st.session_state.original_puzzle,
@@ -451,7 +657,10 @@ def main():
                     st.info(message)
     
     # Main content
-    if not st.session_state.game_started:
+    if st.session_state.game_won:
+        # Show completion screen
+        render_completion_screen()
+    elif not st.session_state.game_started:
         st.info("👈 Select difficulty and click 'New Game' to start!")
         
         with st.expander("📖 How to Play Sudoku", expanded=True):
@@ -514,4 +723,10 @@ def main():
 
 
 if __name__ == "__main__":
+    # Auto-rerun every second to update timer when game is running
+    if st.session_state.game_started and not st.session_state.game_won:
+        import time
+        time.sleep(1)
+        st.rerun()
+    
     main()
