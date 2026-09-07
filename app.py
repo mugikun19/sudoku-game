@@ -656,11 +656,19 @@ def main():
                 else:
                     st.info(message)
     
-    # Main content
-    if st.session_state.game_won:
-        # Show completion screen
-        render_completion_screen()
-    elif not st.session_state.game_started:
+    # Add auto-refresh for timer updates
+    if st.session_state.game_started and not st.session_state.game_won:
+        st.markdown("""
+            <script>
+            setTimeout(function() {
+                location.reload();
+            }, 1000);
+            </script>
+        """, unsafe_allow_html=True)
+    
+    # Main content - flow logic
+    if not st.session_state.game_started:
+        # Initial state - show instructions
         st.info("👈 Select difficulty and click 'New Game' to start!")
         
         with st.expander("📖 How to Play Sudoku", expanded=True):
@@ -679,7 +687,13 @@ def main():
             - Use hints if stuck (max 5 per game)
             - Check your solution when done
             """)
+    
+    elif st.session_state.game_won:
+        # Completion state - show results screen
+        render_completion_screen()
+    
     else:
+        # Game playing state
         col1, col2 = st.columns([2, 1])
         
         with col1:
@@ -697,6 +711,7 @@ def main():
                         st.session_state.game_won = True
                         st.success("🎉 Congratulations! You solved it!")
                         st.balloons()
+                        st.rerun()
                     else:
                         st.error(f"❌ {len(result['wrong_cells'])} cell(s) incorrect")
                 else:
@@ -723,10 +738,4 @@ def main():
 
 
 if __name__ == "__main__":
-    # Auto-rerun every second to update timer when game is running
-    if st.session_state.game_started and not st.session_state.game_won:
-        import time
-        time.sleep(1)
-        st.rerun()
-    
     main()
