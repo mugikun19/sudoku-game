@@ -99,23 +99,29 @@ def get_hint():
 
 def render_sudoku_grid():
     """Render interactive Sudoku grid using React"""
+    import json
+    
     if st.session_state.current_grid is None:
         return
     
     grid_data = st.session_state.current_grid
     original_puzzle = st.session_state.original_puzzle
     
+    # Convert ke JSON dengan aman
+    grid_json = json.dumps(grid_data)
+    original_json = json.dumps(original_puzzle)
+    
     # React component untuk grid interaktif
-    grid_html = '''
+    grid_html = f'''
     <style>
-    .sudoku-container {
+    .sudoku-container {{
         display: flex;
         flex-direction: column;
         align-items: center;
         margin: 2rem auto;
-    }
+    }}
     
-    .sudoku-grid {
+    .sudoku-grid {{
         display: inline-grid;
         grid-template-columns: repeat(9, 56px);
         grid-template-rows: repeat(9, 56px);
@@ -124,9 +130,9 @@ def render_sudoku_grid():
         padding: 3px;
         border: 3px solid #000;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    }
+    }}
     
-    .sudoku-cell {
+    .sudoku-cell {{
         width: 56px;
         height: 56px;
         display: flex;
@@ -142,62 +148,62 @@ def render_sudoku_grid():
         color: #000;
         padding: 0;
         margin: 0;
-    }
+    }}
     
     /* Thick borders untuk 3x3 boxes */
-    .sudoku-cell:nth-child(3n) {
+    .sudoku-cell:nth-child(3n) {{
         border-right: 3px solid #000;
-    }
+    }}
     
-    .sudoku-cell:nth-child(9n) {
+    .sudoku-cell:nth-child(9n) {{
         border-right: 1px solid #666;
-    }
+    }}
     
     /* Borders bawah untuk rows 9, 18, 27 */
-    .sudoku-cell:nth-child(n+1):nth-child(-n+9) {
+    .sudoku-cell:nth-child(n+1):nth-child(-n+9) {{
         border-bottom: 1px solid #666;
-    }
+    }}
     
-    .sudoku-cell:nth-child(n+19):nth-child(-n+27) {
+    .sudoku-cell:nth-child(n+19):nth-child(-n+27) {{
         border-bottom: 3px solid #000;
-    }
+    }}
     
-    .sudoku-cell:nth-child(n+28):nth-child(-n+36) {
+    .sudoku-cell:nth-child(n+28):nth-child(-n+36) {{
         border-bottom: 1px solid #666;
-    }
+    }}
     
-    .sudoku-cell:nth-child(n+46):nth-child(-n+54) {
+    .sudoku-cell:nth-child(n+46):nth-child(-n+54) {{
         border-bottom: 3px solid #000;
-    }
+    }}
     
-    .sudoku-cell:nth-child(n+55):nth-child(-n+63) {
+    .sudoku-cell:nth-child(n+55):nth-child(-n+63) {{
         border-bottom: 1px solid #666;
-    }
+    }}
     
-    .sudoku-cell:nth-child(n+73):nth-child(-n+81) {
+    .sudoku-cell:nth-child(n+73):nth-child(-n+81) {{
         border-bottom: 3px solid #000;
-    }
+    }}
     
-    .sudoku-cell:hover:not(.locked) {
+    .sudoku-cell:hover:not(.locked) {{
         background-color: #e8f4f8;
-    }
+    }}
     
-    .sudoku-cell.selected {
+    .sudoku-cell.selected {{
         background-color: #cce5ff;
         box-shadow: inset 0 0 0 2px #1f77b4;
-    }
+    }}
     
-    .sudoku-cell.highlighted {
+    .sudoku-cell.highlighted {{
         background-color: #f0f0f0;
-    }
+    }}
     
-    .sudoku-cell.locked {
+    .sudoku-cell.locked {{
         font-weight: 700;
         color: #000;
         cursor: default;
-    }
+    }}
     
-    .cell-input-modal {
+    .cell-input-modal {{
         position: fixed;
         top: 50%;
         left: 50%;
@@ -210,15 +216,15 @@ def render_sudoku_grid():
         min-width: 320px;
         text-align: center;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    }
+    }}
     
-    .cell-input-modal h3 {
+    .cell-input-modal h3 {{
         margin: 0 0 1.5rem 0;
         font-size: 18px;
         color: #333;
-    }
+    }}
     
-    .cell-input-modal input {
+    .cell-input-modal input {{
         width: 80px;
         height: 60px;
         font-size: 36px;
@@ -227,21 +233,21 @@ def render_sudoku_grid():
         border-radius: 5px;
         margin-bottom: 1.5rem;
         font-weight: 600;
-    }
+    }}
     
-    .cell-input-modal input:focus {
+    .cell-input-modal input:focus {{
         outline: none;
         border-color: #0d47a1;
         box-shadow: 0 0 0 3px rgba(31, 119, 180, 0.1);
-    }
+    }}
     
-    .modal-buttons {
+    .modal-buttons {{
         display: flex;
         gap: 10px;
         justify-content: center;
-    }
+    }}
     
-    .modal-buttons button {
+    .modal-buttons button {{
         padding: 0.75rem 1.5rem;
         font-size: 14px;
         font-weight: 600;
@@ -249,36 +255,36 @@ def render_sudoku_grid():
         border-radius: 5px;
         cursor: pointer;
         transition: all 0.2s ease;
-    }
+    }}
     
-    .btn-submit {
+    .btn-submit {{
         background: #1f77b4;
         color: white;
-    }
+    }}
     
-    .btn-submit:hover {
+    .btn-submit:hover {{
         background: #1563a8;
-    }
+    }}
     
-    .btn-clear {
+    .btn-clear {{
         background: #ff6b6b;
         color: white;
-    }
+    }}
     
-    .btn-clear:hover {
+    .btn-clear:hover {{
         background: #ee5a52;
-    }
+    }}
     
-    .btn-cancel {
+    .btn-cancel {{
         background: #e0e0e0;
         color: #333;
-    }
+    }}
     
-    .btn-cancel:hover {
+    .btn-cancel:hover {{
         background: #d0d0d0;
-    }
+    }}
     
-    .overlay {
+    .overlay {{
         position: fixed;
         top: 0;
         left: 0;
@@ -287,11 +293,11 @@ def render_sudoku_grid():
         background: rgba(0, 0, 0, 0.5);
         z-index: 999;
         display: none;
-    }
+    }}
     
-    .overlay.active {
+    .overlay.active {{
         display: block;
-    }
+    }}
     </style>
     
     <div class="sudoku-container">
@@ -311,68 +317,67 @@ def render_sudoku_grid():
     
     <script>
     let currentCell = null;
-    let gridData = '''
-    + str(st.session_state.current_grid).replace("'", '"') + ''';
-    let originalData = ''' + str(st.session_state.original_puzzle).replace("'", '"') + ''';
+    let gridData = {grid_json};
+    let originalData = {original_json};
     
-    function initializeGrid() {
+    function initializeGrid() {{
         const grid = document.getElementById('sudokuGrid');
         grid.innerHTML = '';
         
-        for (let row = 0; row < 9; row++) {
-            for (let col = 0; col < 9; col++) {
+        for (let row = 0; row < 9; row++) {{
+            for (let col = 0; col < 9; col++) {{
                 const cell = document.createElement('div');
                 const value = gridData[row][col];
                 const isLocked = originalData[row][col] !== 0;
                 
-                cell.className = `sudoku-cell ${isLocked ? 'locked' : ''}`;
+                cell.className = `sudoku-cell ${{isLocked ? 'locked' : ''}}`;
                 cell.textContent = value !== 0 ? value : '';
-                cell.id = `cell-${row}-${col}`;
+                cell.id = `cell-${{row}}-${{col}}`;
                 
-                if (!isLocked) {
+                if (!isLocked) {{
                     cell.onclick = () => selectCell(row, col);
-                }
+                }}
                 
                 grid.appendChild(cell);
-            }
-        }
-    }
+            }}
+        }}
+    }}
     
-    function selectCell(row, col) {
+    function selectCell(row, col) {{
         // Clear previous selection
-        document.querySelectorAll('.sudoku-cell').forEach(c => {
+        document.querySelectorAll('.sudoku-cell').forEach(c => {{
             c.classList.remove('selected', 'highlighted');
-        });
+        }});
         
         // Highlight current cell
-        const currentCellElem = document.getElementById(`cell-${row}-${col}`);
+        const currentCellElem = document.getElementById(`cell-${{row}}-${{col}}`);
         currentCellElem.classList.add('selected');
         
         // Highlight related cells
-        for (let i = 0; i < 9; i++) {
+        for (let i = 0; i < 9; i++) {{
             // Row
-            document.getElementById(`cell-${row}-${i}`).classList.add('highlighted');
+            document.getElementById(`cell-${{row}}-${{i}}`).classList.add('highlighted');
             // Column
-            document.getElementById(`cell-${i}-${col}`).classList.add('highlighted');
-        }
+            document.getElementById(`cell-${{i}}-${{col}}`).classList.add('highlighted');
+        }}
         
         // Highlight 3x3 box
         const boxRow = Math.floor(row / 3) * 3;
         const boxCol = Math.floor(col / 3) * 3;
-        for (let i = boxRow; i < boxRow + 3; i++) {
-            for (let j = boxCol; j < boxCol + 3; j++) {
-                document.getElementById(`cell-${i}-${j}`).classList.add('highlighted');
-            }
-        }
+        for (let i = boxRow; i < boxRow + 3; i++) {{
+            for (let j = boxCol; j < boxCol + 3; j++) {{
+                document.getElementById(`cell-${{i}}-${{j}}`).classList.add('highlighted');
+            }}
+        }}
         
         currentCellElem.classList.remove('highlighted');
         
         // Show input modal
-        currentCell = {row, col};
+        currentCell = {{row, col}};
         showInputModal(row, col);
-    }
+    }}
     
-    function showInputModal(row, col) {
+    function showInputModal(row, col) {{
         const modal = document.getElementById('inputModal');
         const overlay = document.getElementById('overlay');
         const input = document.getElementById('cellInput');
@@ -385,44 +390,44 @@ def render_sudoku_grid():
         input.focus();
         
         // Allow Enter key
-        input.onkeypress = (e) => {
+        input.onkeypress = (e) => {{
             if (e.key === 'Enter') submitCell();
-        };
-    }
+        }};
+    }}
     
-    function submitCell() {
+    function submitCell() {{
         if (!currentCell) return;
         
         const input = document.getElementById('cellInput');
         const value = input.value.trim();
         
-        if (value === '') {
+        if (value === '') {{
             gridData[currentCell.row][currentCell.col] = 0;
-        } else if (/^[1-9]$/.test(value)) {
+        }} else if (/^[1-9]$/.test(value)) {{
             gridData[currentCell.row][currentCell.col] = parseInt(value);
-        } else {
+        }} else {{
             alert('Hanya masukkan angka 1-9');
             return;
-        }
+        }}
         
         updateGridDisplay();
         updateStreamlit();
         closeModal();
-    }
+    }}
     
-    function clearCell() {
+    function clearCell() {{
         if (!currentCell) return;
         gridData[currentCell.row][currentCell.col] = 0;
         updateGridDisplay();
         updateStreamlit();
         closeModal();
-    }
+    }}
     
-    function cancelModal() {
+    function cancelModal() {{
         closeModal();
-    }
+    }}
     
-    function closeModal() {
+    function closeModal() {{
         const modal = document.getElementById('inputModal');
         const overlay = document.getElementById('overlay');
         modal.style.display = 'none';
@@ -430,29 +435,29 @@ def render_sudoku_grid():
         currentCell = null;
         
         // Clear selection
-        document.querySelectorAll('.sudoku-cell').forEach(c => {
+        document.querySelectorAll('.sudoku-cell').forEach(c => {{
             c.classList.remove('selected', 'highlighted');
-        });
-    }
+        }});
+    }}
     
-    function updateGridDisplay() {
-        for (let row = 0; row < 9; row++) {
-            for (let col = 0; col < 9; col++) {
-                const cell = document.getElementById(`cell-${row}-${col}`);
+    function updateGridDisplay() {{
+        for (let row = 0; row < 9; row++) {{
+            for (let col = 0; col < 9; col++) {{
+                const cell = document.getElementById(`cell-${{row}}-${{col}}`);
                 const value = gridData[row][col];
                 cell.textContent = value !== 0 ? value : '';
-            }
-        }
-    }
+            }}
+        }}
+    }}
     
-    function updateStreamlit() {
+    function updateStreamlit() {{
         // Send data to Streamlit via hidden input
         const hiddenInput = document.getElementById('hiddenGridData');
-        if (hiddenInput) {
+        if (hiddenInput) {{
             hiddenInput.value = JSON.stringify(gridData);
             hiddenInput.dispatchEvent(new Event('change'));
-        }
-    }
+        }}
+    }}
     
     // Initialize on page load
     initializeGrid();
